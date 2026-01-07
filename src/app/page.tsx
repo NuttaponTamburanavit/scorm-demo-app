@@ -22,9 +22,9 @@ export default function Home() {
             </h1>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500">
-            <a href="#" className="text-gray-900">Dashboard</a>
-            <a href="#" className="hover:text-primary transition-colors">Course Library</a>
-            <a href="#" className="hover:text-primary transition-colors">Analytics</a>
+            {/* <a href="#" className="text-gray-900">Dashboard</a> */}
+            {/* <a href="#" className="hover:text-primary transition-colors">Course Library</a>
+            <a href="#" className="hover:text-primary transition-colors">Analytics</a> */}
           </nav>
         </div>
       </header>
