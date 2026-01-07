@@ -107,10 +107,35 @@ This allows the theme to be updated dynamically or by simply changing a few line
     - Support multi-SCO (Shareable Content Object) navigation if the package contains multiple resources.
     - Next/Previous buttons (if controlled by LMS).
 
-### 3. User Learning Experience
-- **Course Library**: Grid view of uploaded courses with status indicators (New, In Progress, Completed).
-- **Progress Tracking**: Visual progress bars based on course completion status.
-- **Resuming**: Ability to pick up where the user left off (using `cmi.suspend_data` and `cmi.location`).
+### 3. Course Library
+- **Persistence**: Store uploaded SCORM packages and user progress (locally or via database).
+- **Listing View**: Multi-column grid or list view showcasing all available courses.
+- **Course Metadata**: Display Title, Version, Upload Date, and last accessed time.
+- **Progress Tracking**: 
+    - Status indicators: `Not Started`, `In Progress`, `Completed`, `Passed`, `Failed`.
+    - Visual progress percentages.
+- **Actions**:
+    - **Launch**: Start the course from the beginning.
+    - **Resume**: Continue from the last saved location (`cmi.location`).
+    - **Delete**: Remove course from the library.
+
+### 4. Analytics Dashboard
+- **Overview Metrics**:
+    - **Total Courses**: Number of unique courses uploaded.
+    - **Completion Rate**: Percentage of completed courses vs total.
+    - **Average Score**: Calculated across all scored attempts.
+    - **Total Learning Time**: Sum of all session times.
+- **Visualizations**:
+    - **Learning Activity**: Bar or line chart showing sessions over the last 30 days.
+    - **Score Distribution**: Histogram or pie chart of success vs failure.
+- **Detailed Reports**:
+    - Per-course deep dive: attempts count, specific data model values (`suspend_data` size, etc.).
+
+## Navigation & Layout
+The application will feature a top-level navigation bar with the following tabs:
+- **Dashboard**: The main overview and starting point.
+- **Course Library**: Detailed management and browsing of SCORM content.
+- **Analytics**: Comprehensive data visualization and reporting.
 
 ## Suggested "Learning SCORM Journey" Features
 *Ideas to enhance the educational aspect of the demo:*

@@ -9,12 +9,14 @@ interface ScormState {
   error: string | null;
   warning: string | null;
   cmi: Record<string, string | number | boolean | null>;
+  conformanceMode: 'strict' | 'lenient';
   
   setUploading: () => void;
   setProcessing: () => void;
   setReady: (data: { courseId: string; title: string; version: '1.1' | '1.2' | '2004'; launchUrl: string; warning?: string | null }) => void;
   setError: (error: string) => void;
   setCmiValue: (key: string, value: string | number | boolean | null) => void;
+  setConformanceMode: (mode: 'strict' | 'lenient') => void;
   reset: () => void;
 }
 
@@ -27,6 +29,7 @@ export const useScormStore = create<ScormState>((set) => ({
   error: null,
   warning: null,
   cmi: {},
+  conformanceMode: 'lenient',
 
   setUploading: () => set({ status: 'uploading', error: null, warning: null }),
   setProcessing: () => set({ status: 'processing', error: null }),
@@ -35,6 +38,7 @@ export const useScormStore = create<ScormState>((set) => ({
   setCmiValue: (key, value) => set((state) => ({
     cmi: { ...state.cmi, [key]: value }
   })),
+  setConformanceMode: (mode) => set({ conformanceMode: mode }),
   reset: () => set({
     courseId: null,
     title: null,
@@ -43,6 +47,7 @@ export const useScormStore = create<ScormState>((set) => ({
     status: 'idle',
     error: null,
     warning: null,
-    cmi: {}
+    cmi: {},
+    conformanceMode: 'lenient'
   }),
 }));

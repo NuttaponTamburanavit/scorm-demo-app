@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useScormStore } from '@/store/useScormStore';
-import { Maximize2, RotateCcw, Upload } from 'lucide-react';
+import { Maximize2, RotateCcw, Upload, Monitor, Tablet, Smartphone, ShieldCheck, ShieldAlert } from 'lucide-react';
 // We need to import scorm-again dynamically or ensure it runs only on client
 // Since this is a 'use client' component, it's fine, but 'scorm-again' is often a script.
 // I'll assume we can import specific parts or assign to window using the default import.
@@ -10,10 +10,11 @@ import { ScormEventEnum } from '@/types/scorm';
 
 
 export const ScormPlayer = () => {
-  const { launchUrl, title, version, courseId, reset, setCmiValue } = useScormStore();
+  const { launchUrl, title, version, courseId, reset, setCmiValue, conformanceMode, setConformanceMode } = useScormStore();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [isApiReady, setIsApiReady] = useState(false);
+  const [viewportSize, setViewportSize] = useState<'full' | 'desktop' | 'tablet' | 'mobile'>('full');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -22,6 +23,7 @@ export const ScormPlayer = () => {
     const settings = {
       autocommit: true,
       logLevel: 4,
+      strict: conformanceMode === 'strict',
     };
 
     let api: Scorm12API | Scorm2004API;
@@ -108,7 +110,7 @@ export const ScormPlayer = () => {
       delete (window as any).API;
       delete (window as any).API_1484_11;
     };
-  }, [version, courseId, setCmiValue]); // Added setCmiValue to deps for safety
+  }, [version, courseId, setCmiValue, conformanceMode]);
 
   if (!launchUrl) return null;
 
@@ -121,7 +123,52 @@ export const ScormPlayer = () => {
             SCORM {version}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Responsive Toggles */}
+          <div className="flex bg-gray-100 p-1 rounded-lg mr-2">
+            <button
+              onClick={() => setViewportSize('full')}
+              className={`p-1.5 rounded-md transition-all ${viewportSize === 'full' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Full Width"
+            >
+              <Maximize2 size={16} />
+            </button>
+            <button
+              onClick={() => setViewportSize('desktop')}
+              className={`p-1.5 rounded-md transition-all ${viewportSize === 'desktop' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Desktop (1280px)"
+            >
+              <Monitor size={16} />
+            </button>
+            <button
+              onClick={() => setViewportSize('tablet')}
+              className={`p-1.5 rounded-md transition-all ${viewportSize === 'tablet' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Tablet (768px)"
+            >
+              <Tablet size={16} />
+            </button>
+            <button
+              onClick={() => setViewportSize('mobile')}
+              className={`p-1.5 rounded-md transition-all ${viewportSize === 'mobile' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Mobile (375px)"
+            >
+              <Smartphone size={16} />
+            </button>
+          </div>
+
+          {/* Conformance Toggle */}
+          <button
+            onClick={() => setConformanceMode(conformanceMode === 'strict' ? 'lenient' : 'strict')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-xs font-semibold mr-2
+              ${conformanceMode === 'strict'
+                ? 'bg-amber-50 border-amber-200 text-amber-700'
+                : 'bg-green-50 border-green-200 text-green-700'}`}
+            title={`Current: ${conformanceMode === 'strict' ? 'Strict' : 'Lenient'}. Click to toggle.`}
+          >
+            {conformanceMode === 'strict' ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+            {conformanceMode === 'strict' ? 'Strict Mode' : 'Lenient Mode'}
+          </button>
+
           <button
             onClick={reset}
             className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
@@ -132,7 +179,14 @@ export const ScormPlayer = () => {
         </div>
       </div>
 
-      <div className="relative aspect-video bg-black/5 rounded-2xl overflow-hidden shadow-inner border border-gray-200">
+      <div
+        className={`relative bg-black/5 rounded-2xl overflow-hidden shadow-inner border border-gray-200 mx-auto transition-all duration-300 ease-in-out
+          ${viewportSize === 'full' ? 'w-full aspect-video' : ''}
+          ${viewportSize === 'desktop' ? 'w-[1280px] max-w-full aspect-video' : ''}
+          ${viewportSize === 'tablet' ? 'w-[768px] max-w-full aspect-[3/4] md:aspect-video' : ''}
+          ${viewportSize === 'mobile' ? 'w-[375px] max-w-full aspect-[9/16]' : ''}
+        `}
+      >
         {isApiReady ? (
           <iframe
             ref={iframeRef}
