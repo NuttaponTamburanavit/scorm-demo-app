@@ -1,8 +1,11 @@
 'use client';
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileUp, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, AlertCircle, Loader2 } from 'lucide-react';
 import { useScormStore } from '@/store/useScormStore';
+import { toast } from 'sonner';
+
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
 export const ScormUploader = () => {
   const { setUploading, setReady, setError, status } = useScormStore();
@@ -12,11 +15,21 @@ export const ScormUploader = () => {
     if (!file) return;
 
     if (!file.name.endsWith('.zip')) {
-      setError('Please upload a valid .zip SCORM package.');
+      const msg = 'Please upload a valid .zip SCORM package.';
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      const msg = `File is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed size is 4.5MB.`;
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
     setUploading();
+    const loadingToast = toast.loading('Uploading and processing SCORM package...');
 
     const formData = new FormData();
     formData.append('file', file);
@@ -27,7 +40,18 @@ export const ScormUploader = () => {
         body: formData,
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // Handle non-JSON error cases (like 413 Payload Too Large from Vercel/Next.js)
+        const text = await response.text();
+        if (response.status === 413 || text.includes('Request Entity Too Large')) {
+          throw new Error('File size exceeds server upload limits (4.5MB).');
+        }
+        throw new Error(`Server error (${response.status}): ${text.slice(0, 100)}...`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Upload failed');
@@ -40,8 +64,11 @@ export const ScormUploader = () => {
         launchUrl: data.launchUrl,
         warning: data.warning,
       });
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      toast.success('Course uploaded successfully!', { id: loadingToast });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMsg);
+      toast.error(errorMsg, { id: loadingToast });
     }
   }, [setUploading, setReady, setError]);
 
