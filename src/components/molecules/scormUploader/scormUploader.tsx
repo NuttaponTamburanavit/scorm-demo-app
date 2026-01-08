@@ -22,7 +22,7 @@ export const ScormUploader = () => {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      const msg = `File is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed size is 4.5MB.`;
+      const msg = `File is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed size is 25MB.`;
       setError(msg);
       toast.error(msg);
       return;
@@ -48,7 +48,7 @@ export const ScormUploader = () => {
         // Handle non-JSON error cases (like 413 Payload Too Large from Vercel/Next.js)
         const text = await response.text();
         if (response.status === 413 || text.includes('Request Entity Too Large')) {
-          throw new Error('File size exceeds server upload limits (4.5MB).');
+          throw new Error('File size exceeds server upload limits (25MB).');
         }
         throw new Error(`Server error (${response.status}): ${text.slice(0, 100)}...`);
       }
