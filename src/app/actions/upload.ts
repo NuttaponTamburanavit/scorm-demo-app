@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+'use server';
+
 import AdmZip from 'adm-zip';
 import { parseStringPromise } from 'xml2js';
 import fs from 'fs';
@@ -6,7 +7,6 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import os from 'os';
 
-// Helper to determine SCORM version from manifest with enhanced validation
 // Helper to determine SCORM version from manifest with enhanced validation
 const detectVersion = (manifest: any): { version: '1.1' | '1.2' | '2004'; warning?: string | null } => {
   // Check for SCORM 1.1 CSF root structure (<content> with <block> or <globalProperties>)
@@ -34,13 +34,12 @@ const detectVersion = (manifest: any): { version: '1.1' | '1.2' | '2004'; warnin
   };
 };
 
-export async function POST(req: NextRequest) {
+export async function uploadScormAction(formData: FormData) {
   try {
-    const formData = await req.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+      return { error: 'No file uploaded' };
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -65,14 +64,14 @@ export async function POST(req: NextRequest) {
     }
     
     if (!fs.existsSync(manifestPath)) {
-      return NextResponse.json({ error: 'Manifest file not found (.xml)' }, { status: 400 });
+      return { error: 'Manifest file not found (.xml)' };
     }
 
     const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
     const result = await parseStringPromise(manifestContent);
     const manifest = result.manifest || result['imscp:manifest'] || result.content;
     
-    if (!manifest) return NextResponse.json({ error: 'Invalid manifest structure' }, { status: 400 });
+    if (!manifest) return { error: 'Invalid manifest structure' };
     
     const { version, warning } = detectVersion(manifest);
 
@@ -93,20 +92,21 @@ export async function POST(req: NextRequest) {
         launchHref = launchRes?.$?.href;
     }
     
-    if (!launchHref) return NextResponse.json({ error: 'Launch resource not found' }, { status: 400 });
+    if (!launchHref) return { error: 'Launch resource not found' };
 
     fs.unlinkSync(zipPath);
 
-    return NextResponse.json({
+    return {
+      success: true,
       courseId,
       title,
       version,
       launchUrl: `/api/content/${courseId}/${launchHref}`,
       warning
-    });
+    };
 
   } catch (error) {
-    console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Internal server error processing package' }, { status: 500 });
+    console.error('Upload action error:', error);
+    return { error: 'Internal server error processing package' };
   }
 }

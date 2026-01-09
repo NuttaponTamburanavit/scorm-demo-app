@@ -4,6 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, AlertCircle, Loader2 } from 'lucide-react';
 import { useScormStore } from '@/store/useScormStore';
 import { toast } from 'sonner';
+import { uploadScormAction } from '@/app/actions/upload';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -35,33 +36,17 @@ export const ScormUploader = () => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const data = await uploadScormAction(formData);
 
-      let data;
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        // Handle non-JSON error cases (like 413 Payload Too Large from Vercel/Next.js)
-        const text = await response.text();
-        if (response.status === 413 || text.includes('Request Entity Too Large')) {
-          throw new Error('File size exceeds server upload limits (25MB).');
-        }
-        throw new Error(`Server error (${response.status}): ${text.slice(0, 100)}...`);
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       setReady({
-        courseId: data.courseId,
-        title: data.title,
-        version: data.version,
-        launchUrl: data.launchUrl,
+        courseId: data.courseId!,
+        title: data.title!,
+        version: data.version!,
+        launchUrl: data.launchUrl!,
         warning: data.warning,
       });
       toast.success('Course uploaded successfully!', { id: loadingToast });

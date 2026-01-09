@@ -36,4 +36,5 @@
 - [x] Refactor components to use Barrel Style exports <!-- id: 13 -->
 - [x] Update specification.md with Barrel Style examples <!-- id: 14 -->
 - [x] Rename component files and directories to camelCase <!-- id: 15 -->
+- [x] Fix next.config.ts TypeScript error <!-- id: 25 -->
 - [ ] Write tests for components <!-- id: 24 -->
