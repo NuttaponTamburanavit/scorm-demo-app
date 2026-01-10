@@ -90,18 +90,23 @@ This allows the theme to be updated dynamically or by simply changing a few line
 ## Core Functionality
 
 ### 1. SCORM Upload
-- **Interface**: Drag-and-drop zone for `.zip` SCORM packages.
-- **Processing**:
-    - Unzip and validate the package (client-side or server-side).
-    - Parse `imsmanifest.xml` or `CSF.xml` to extract course title, resources, and organization structure.
-    - Support SCORM Version (1.1, 1.2, or 2004).
-    - **Enhanced Validation**: Check for manifest consistency. If a version cannot be clearly identified or if critical files are missing for the detected version, provide a descriptive warning/error to the user.
-
+- **Architecture**: Purely Client-Side (Thin Server).
+- **Utility Layer (`src/utils/db.ts`)**: Generic IndexedDB interface for storage.
+- **Service Layer (`src/services/scorm.service.ts`)**: Orchestrates ZIP extraction (`JSZip`), manifest parsing, and storage.
+- **Processing**: Browser-side package extraction.
+- **Metadata Extraction**: Client-side parsing of `imsmanifest.xml` or `CSF.xml` via `DOMParser`.
+- **Validation**: 
+    - Mandatory manifest file.
+    - Content-type validation (.zip).
+    - Client-side version detection (1.1, 1.2, 2004).
+- **Size Limit**: 25MB (Local processing bypasses platform-level server payload limits).
 
 ### 2. SCORM Player (RTE - Run-Time Environment)
+- **Serving Mechanism**: Virtual file serving via a **Service Worker** (`sw.js`).
+- **Intercept**: The Service Worker intercepts requests to `/api/content/...` and serves Blobs directly from IndexedDB, ensuring fast, offline-ready content delivery.
 - **iframe Isolation**: Render SCORM content within a secure `iframe`.
 - **API Adapter**:
-    - Implement `API` (SCORM 1.2) and `API_1484_11` (SCORM 2004) window objects.
+    - Implement `API` (SCORM 1.2) and `API_1484_11` (SCORM 2004) window objects via `scorm-again`.
     - Handle standard calls: `Initialize`, `Terminate`, `GetValue`, `SetValue`, `Commit`.
 - **Navigation**:
     - Support multi-SCO (Shareable Content Object) navigation if the package contains multiple resources.

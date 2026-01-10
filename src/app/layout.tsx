@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Upload and test SCORM packages with ease",
 };
 
+import { SWProvider } from "@/components/providers/SWProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,7 +30,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <SWProvider>
+          {children}
+        </SWProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>

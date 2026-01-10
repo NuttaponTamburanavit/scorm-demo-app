@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, AlertCircle, Loader2 } from 'lucide-react';
 import { useScormStore } from '@/store/useScormStore';
 import { toast } from 'sonner';
-import { uploadScormAction } from '@/app/actions/upload';
+import { scormService } from '@/services/scorm.service';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -30,28 +30,14 @@ export const ScormUploader = () => {
     }
 
     setUploading();
-    const loadingToast = toast.loading('Uploading and processing SCORM package...');
-
-    const formData = new FormData();
-    formData.append('file', file);
+    const loadingToast = toast.loading('Processing SCORM package locally...');
 
     try {
-      const data = await uploadScormAction(formData);
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setReady({
-        courseId: data.courseId!,
-        title: data.title!,
-        version: data.version!,
-        launchUrl: data.launchUrl!,
-        warning: data.warning,
-      });
-      toast.success('Course uploaded successfully!', { id: loadingToast });
+      const result = await scormService.processAndStore(file);
+      setReady(result);
+      toast.success('Course processed successfully!', { id: loadingToast });
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMsg = err instanceof Error ? err.message : 'An unexpected error occurred during processing';
       setError(errorMsg);
       toast.error(errorMsg, { id: loadingToast });
     }
