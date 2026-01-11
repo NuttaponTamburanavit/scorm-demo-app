@@ -1,162 +1,156 @@
-# SCORM Demo Website Specification
+# SCORM Demo App Specification
 
-## Overview
-A Next.js-based web application designed to demonstrate SCORM content playback and track user learning journeys. The application focuses on a friendly, minimal user interface with a white and pink color scheme.
+This document provides a detailed technical specification for the SCORM Demo App. While the `README.md` serves as an onboarding guide, this document is intended for deep technical reference.
 
-## Technology Stack
-- **Framework**: Next.js (latest version)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS / CSS Modules
-- **State Management**: Zustand (for SCORM API state)
-- **SCORM Parsing**: `scorm-again` or similar lightweight library for parsing manifests and handling runtime communication.
+---
 
-## Technical Architecture
+## 1. Tech Stack
 
-### Folder Structure (Atomic Design)
-The project will follow the Atomic Design methodology to ensure component reusability and scalability.
+### Core Frameworks
+- **Framework**: [Next.js 15+](https://nextjs.org/) (App Router) - Provides the foundation for routing, server actions, and optimized rendering.
+- **Language**: [TypeScript](https://www.typescriptlang.org/) - Ensures type safety and improves maintainability across the codebase.
+- **Styling**: 
+  - **Tailwind CSS**: Used for utility-first styling and rapid UI development.
+  - **CSS Modules**: Used within the Atomic Design components for scoped, component-specific styling.
 
-```
+### Specialized Libraries
+- **SCORM Runtime**: [scorm-again](https://github.com/cedu-fai-ucc/scorm-again) - Handles the heavy lifting of SCORM 1.1, 1.2, and 2004 API implementation.
+- **Package Processing**: [JSZip](https://stuk.github.io/jszip/) - Used for client-side extraction of SCORM `.zip` packages.
+- **State Management**: [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction) - A lightweight store for managing SCORM API state and UI transitions.
+- **Storage**: **IndexedDB** - Utilized for persistent local storage of extracted SCORM content and user progress.
+
+---
+
+## 2. Key Features
+
+### 2.1 SCORM Upload & Processing
+- **Architecture**: Purely client-side processing to bypass platform payload limits (e.g., Vercel's 4.5MB limit).
+- **Extraction**: Uses `JSZip` to extract package contents directly into browser memory.
+- **Manifest Parsing**: Uses `DOMParser` to analyze `imsmanifest.xml` (or `CSF.xml`) to identify resources, entry points, and SCORM version.
+- **Validation**: 
+  - Mandatory manifest file detection.
+  - Runtime version detection (SCORM 1.1, 1.2, or 2004).
+  - Maximum file size support: **25MB+**.
+
+### 2.2 SCORM Player (RTE)
+- **Runtime Environment**: Implements `API` (1.2) and `API_1484_11` (2004) windows objects.
+- **Iframe Isolation**: Content is rendered in a sandboxed `iframe` to prevent cross-scripting issues between the course and the LMS interface.
+- **Data Model Handling**: Supports standard calls: `Initialize`, `Terminate`, `GetValue`, `SetValue`, `Commit`, and `GetLastError`.
+- **SCO Navigation**: Support for multi-SCO packages with navigation tree (if defined in manifest).
+
+### 2.3 Course Library
+- **Persistence**: Extracted files and metadata are stored in IndexedDB.
+- **Dashboard View**: A grid layout displaying uploaded courses with metadata (Title, Version, Last Accessed).
+- **Progress Tracking**: 
+  - Tracks `cmi.completion_status` and `cmi.success_status`.
+  - Visual progress bars based on `cmi.progress_measure` or score.
+- **Management**: Ability to launch, resume, or delete courses.
+
+### 2.4 Analytics & Debugging
+- **Live RTC Log**: (Planned) A real-time console showing communication between the course and the LMS.
+- **Data Explorer**: (Planned) A visual tree view to inspect the current session's SCORM data model (CMI).
+- **Session Reports**: Detailed breakdown of session time, score distribution, and interaction history.
+
+---
+
+## 3. Design System
+
+### 3.1 Project Structure (Atomic Design)
+The project follows **Atomic Design** to maintain a separation of concerns and maximize component reuse.
+
+```text
 src/
-├── app/                 # Next.js App Router pages
-├── components/          # Atomic Design components
-│   ├── atoms/           # Basic building blocks (index.ts for barrels)
-│   ├── molecules/       # Groups of atoms (index.ts for barrels)
-│   ├── organisms/       # Complex sections (index.ts for barrels)
-│   └── templates/       # Page layouts (index.ts for barrels)
-├── hooks/               # Custom React hooks
-├── utils/               # Helper functions
-├── styles/              # Global styles
-└── store/               # Zustand stores
+├── app/                  # Next.js App Router (pages, actions, API)
+├── components/           # UI Components (Atomic Design)
+│   ├── atoms/            # Smallest units (Buttons, Icons, Tooltips)
+│   ├── molecules/        # Groups of atoms (Uploader, Search bar, Nav items)
+│   ├── organisms/        # Complex sections (ScormPlayer, Dashboard grid)
+│   ├── templates/        # Page-level layouts
+│   └── providers/        # Context providers (Zustand, SW registration)
+├── hooks/                # Custom React hooks (e.g., useScormApi)
+├── services/             # Business logic (scorm.service.ts, zip.utils.ts)
+├── store/                # Global state (Zustand stores)
+├── utils/                # Helper utilities (db.ts for IndexedDB)
+└── types/                # Shared TypeScript interfaces & types
 ```
 
-#### Naming Conventions
-- **Components**: Name components in camelCase (e.g., `button`, `playerIcon`).
-- **Files**: Use camelCase for file names (e.g., `button.tsx`, `button.module.css`).
+### 3.2 Naming Conventions
+- **Folders**: Must use `camelCase` (e.g., `src/components/scormPlayer`).
+- **Files**: All files must use `camelCase` (e.g., `scormPlayer.tsx`, `scorm.service.ts`).
+- **Components**: While files are `camelCase`, the React components within them use `PascalCase`.
+- **Hooks**: Prefixed with `use` (e.g., `useScormStore`).
 
-#### Barrel Style Usage
-To keep imports clean, each component directory should use an `index.ts` file to export its components.
+### 3.3 Barrel Style Usage
+To keep imports clean, each component directory uses an `index.ts` file. This allows consumers to import from the folder level rather than deep-nesting into specific files.
 
-**Example Structure:**
-```
-src/components/atoms/
-├── button/                       
-│   ├── button.tsx                # Component implementation
-│   ├── button.module.css         # CSS Modules
-│   ├── button.stories.tsx        # Storybook stories
-│   ├── button.test.tsx           # Unit tests
-│   └── index.ts                  # export * from './button'
-├── playerIcon/
-│   ├── playerIcon.tsx            # Component implementation
-│   ├── playerIcon.module.css     # CSS Modules
-│   ├── playerIcon.stories.tsx    # Storybook stories
-│   ├── playerIcon.test.tsx       # Unit tests
-│   └── index.ts                  # export * from './playerIcon'
-└── index.ts                      # export * from './atoms'
-
+**Example Folder Structure (`scormPlayer`):**
+```text
+src/components/organisms/scormPlayer/
+├── scormPlayer.tsx             # Main component logic
+├── scormPlayer.module.css      # Scoped styles
+├── scormPlayer.stories.tsx     # Storybook documentation
+├── scormPlayer.spec.tsx        # Unit/Integration tests
+└── index.ts                    # Barrel export
 ```
 
-**Example Page Usage:**
+**Implementation Example:**
+
 ```tsx
-// Clean imports via barrels
-import { Button } from '@/components/atoms';
+// 1. scormPlayer.tsx
+import styles from './scormPlayer.module.css';
+export const ScormPlayer = () => <div className={styles.container}>...</div>;
+
+// 2. index.ts (Barrel)
+export * from './ScormPlayer';
+
+// 3. Consumer usage (app/page.tsx)
 import { ScormPlayer } from '@/components/organisms';
 ```
 
+**Supporting Files:**
+- **`.stories.tsx`**: Used for isolated UI testing and documentation via Storybook.
+- **`.spec.tsx`** or **`.test.tsx`**: Contains unit tests (Vitest/Jest) ensuring component reliability.
+- **`.module.css`**: CSS Modules for local scoping, preventing class name collisions.
 
-### Theme Configuration
-To support easy configuration of the primary color, we will use CSS Variables mapped to Tailwind's configuration.
+### 3.4 Theme & UI Configuration
+- **Visual Style**: Minimalist, clean, with a focus on usability.
+- **Glassmorphism**: Subtle use of transparency and blurs for overlays and modals.
+- **Color Palette**: 
+  - **Primary**: Soft Pink/Secondary accents (configurable via `globals.css` variables).
+  - **Background**: High-contrast white/off-white for readability.
 
-- **Implementation**: Define colors in `globals.css` using CSS custom properties.
-- **Tailwind Config**: Reference these variables in `tailwind.config.ts`.
+**Example: Changing the Primary Color**
+To update the theme's core identity, modify the CSS variables in `src/app/globals.css`. These variables are mapped to the Tailwind configuration.
 
 ```css
+/* src/app/globals.css */
 :root {
-  --color-primary: 255 105 180; /* Pink RGB */
-  --color-primary-light: 255 193 204;
+  /* Change from Pink to Ocean Blue */
+  --color-primary: 14 165 233;       /* sky-500 RGB */
+  --color-primary-light: 186 230 253; /* sky-200 RGB */
 }
 ```
+- **Typography**: Modern sans-serif (Inter/Outfit) optimized for web performance.
 
-This allows the theme to be updated dynamically or by simply changing a few lines in the CSS file.
+---
 
-## Design & UI/UX
-- **Style**: Minimal, Clean, Friendly.
-- **Color Palette**:
-    - **Primary**: Soft Pink (`#FFC1CC` to `#FF69B4` range, adjusted for accessibility).
-    - **Background**: White (`#FFFFFF`) / Off-White (`#FAFAFA`).
-    - **Text**: Dark Gray (`#333333`) for softness.
-    - **Accents**: Rounded corners, subtle shadows, glassmorphism hints.
-- **Typography**: Modern sans-serif (e.g., Inter or Outfit).
+## 4. Non-Functional Requirements
 
-## Core Functionality
+### 4.1 Performance & Serving
+- **Service Worker Interception**: A custom `sw.js` intercepts requests targeting `/api/content/...`. It retrieves the requested resource from IndexedDB as a `Blob` and returns it as a standard HTTP response.
+- **Client-Side Serving**: This avoids all server round-trips for course assets (images, JS, CSS), leading to near-instant loading and offline capability.
 
-### 1. SCORM Upload
-- **Architecture**: Purely Client-Side (Thin Server).
-- **Utility Layer (`src/utils/db.ts`)**: Generic IndexedDB interface for storage.
-- **Service Layer (`src/services/scorm.service.ts`)**: Orchestrates ZIP extraction (`JSZip`), manifest parsing, and storage.
-- **Processing**: Browser-side package extraction.
-- **Metadata Extraction**: Client-side parsing of `imsmanifest.xml` or `CSF.xml` via `DOMParser`.
-- **Validation**: 
-    - Mandatory manifest file.
-    - Content-type validation (.zip).
-    - Client-side version detection (1.1, 1.2, 2004).
-- **Size Limit**: 25MB (Local processing bypasses platform-level server payload limits).
+### 4.2 Storage & Persistence
+- **IndexedDB**: Chosen over `localStorage` due to the large size of SCORM packages. 
+- **Database Schema**:
+  - `courses`: Stores manifest data and generic metadata.
+  - `files`: Stores raw Blob data for every file in the ZIP.
+  - `progress`: Stores JSON blobs of the SCORM data model per user/course.
 
-### 2. SCORM Player (RTE - Run-Time Environment)
-- **Serving Mechanism**: Virtual file serving via a **Service Worker** (`sw.js`).
-- **Intercept**: The Service Worker intercepts requests to `/api/content/...` and serves Blobs directly from IndexedDB, ensuring fast, offline-ready content delivery.
-- **iframe Isolation**: Render SCORM content within a secure `iframe`.
-- **API Adapter**:
-    - Implement `API` (SCORM 1.2) and `API_1484_11` (SCORM 2004) window objects via `scorm-again`.
-    - Handle standard calls: `Initialize`, `Terminate`, `GetValue`, `SetValue`, `Commit`.
-- **Navigation**:
-    - Support multi-SCO (Shareable Content Object) navigation if the package contains multiple resources.
-    - Next/Previous buttons (if controlled by LMS).
+### 4.3 Security
+- **Origin Isolation**: Service workers only serve content within their scope.
+- **Iframe Sandboxing**: Restricts course content from accessing parent window cookies or sensitive local storage data.
 
-### 3. Course Library
-- **Persistence**: Store uploaded SCORM packages and user progress (locally or via database).
-- **Listing View**: Multi-column grid or list view showcasing all available courses.
-- **Course Metadata**: Display Title, Version, Upload Date, and last accessed time.
-- **Progress Tracking**: 
-    - Status indicators: `Not Started`, `In Progress`, `Completed`, `Passed`, `Failed`.
-    - Visual progress percentages.
-- **Actions**:
-    - **Launch**: Start the course from the beginning.
-    - **Resume**: Continue from the last saved location (`cmi.location`).
-    - **Delete**: Remove course from the library.
-
-### 4. Analytics Dashboard
-- **Overview Metrics**:
-    - **Total Courses**: Number of unique courses uploaded.
-    - **Completion Rate**: Percentage of completed courses vs total.
-    - **Average Score**: Calculated across all scored attempts.
-    - **Total Learning Time**: Sum of all session times.
-- **Visualizations**:
-    - **Learning Activity**: Bar or line chart showing sessions over the last 30 days.
-    - **Score Distribution**: Histogram or pie chart of success vs failure.
-- **Detailed Reports**:
-    - Per-course deep dive: attempts count, specific data model values (`suspend_data` size, etc.).
-
-## Navigation & Layout
-The application will feature a top-level navigation bar with the following tabs:
-- **Dashboard**: The main overview and starting point.
-- **Course Library**: Detailed management and browsing of SCORM content.
-- **Analytics**: Comprehensive data visualization and reporting.
-
-## Suggested "Learning SCORM Journey" Features
-*Ideas to enhance the educational aspect of the demo:*
-
-1.  **Live Debugger / Console**:
-    - specific panel that displays RTS (Run-Time Service) logs.
-    - Show real-time calls: "Course sent `cmi.core.score.raw` = 80".
-    - Allow users to "see" the communication between content and LMS.
-
-2.  **CMI Explorer**:
-    - A visual tree view of the current data model (CMI) stored for the session.
-    - inspect values like `completion_status`, `success_status`, `session_time`.
-
-3.  **Conformance Mode**:
-    - Strict vs. Lenient error handling settings.
-    - Badges for courses that perfectly follow the standard.
-
-4.  **Responsive Tester**:
-    - Built-in toggles to resize the SCORM iframe to simulate Mobile, Tablet, and Desktop views to test content responsiveness.
+### 4.4 Navigation & Layout
+- **Global Navigation**: Top-bar navigation for Dashboard, Library, and Analytics.
+- **Responsive Design**: Mobile-friendly layout using Tailwind's responsive utilities.
