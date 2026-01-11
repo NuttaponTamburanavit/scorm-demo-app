@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useScormStore } from '@/store/useScormStore';
-import { Maximize2, RotateCcw, Upload, Monitor, Tablet, Smartphone, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Maximize2, Upload, Monitor, Tablet, Smartphone, ShieldCheck, ShieldAlert } from 'lucide-react';
 // We need to import scorm-again dynamically or ensure it runs only on client
 // Since this is a 'use client' component, it's fine, but 'scorm-again' is often a script.
 // I'll assume we can import specific parts or assign to window using the default import.

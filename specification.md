@@ -154,3 +154,39 @@ To update the theme's core identity, modify the CSS variables in `src/app/global
 ### 4.4 Navigation & Layout
 - **Global Navigation**: Top-bar navigation for Dashboard, Library, and Analytics.
 - **Responsive Design**: Mobile-friendly layout using Tailwind's responsive utilities.
+
+
+### 4.5 Life Cycle of SCORM Package
+The following diagram illustrates the high-level lifecycle of a SCORM package, from initial upload to interactive playback.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Web Interface
+    participant Logic as SCORM Service (JSZip)
+    participant DB as Browser Storage (IndexedDB)
+    participant SW as Service Worker
+    participant Player as Content Player (Iframe)
+
+    Note over User, DB: 1. Upload & Storage Phase
+    User->>UI: Select SCORM (.zip) file
+    UI->>Logic: Unzip package
+    Logic->>Logic: Parse manifest (imsmanifest.xml)
+    Logic->>DB: Store files & metadata
+    DB-->>UI: Return Success
+
+    Note over UI, Player: 2. Launch & Playback Phase
+    UI->>DB: Get launch URL
+    UI->>Player: Load Content (Iframe)
+    
+    Note over Player, SW: 3. Asset Serving
+    Player->>SW: Request asset (image/js/css)
+    SW->>DB: Fetch file Blob
+    DB-->>SW: Return Blob
+    SW-->>Player: Serve asset to player
+
+    Note over Player, DB: 4. Progress Tracking
+    Player->>UI: SCORM API Calls (Score, Status)
+    UI->>DB: Persist Progress data
+```
